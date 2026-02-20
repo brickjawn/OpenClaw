@@ -28,6 +28,25 @@ jobs:
         id: check
         uses: ./.github/actions/detect-docs-changes
 
+  # Review dependencies for security vulnerabilities in PRs.
+  dependency-review:
+    needs: [docs-scope]
+    if: github.event_name == 'pull_request' && needs.docs-scope.outputs.docs_only != 'true'
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+
   # Detect which heavy areas are touched so PRs can skip unrelated expensive jobs.
   # Push to main keeps broad coverage.
   changed-scope:
@@ -185,12 +204,14 @@ jobs:
           - runtime: node
             task: test
             command: pnpm canvas:a2ui:bundle && pnpm test
+            coverage_command: pnpm canvas:a2ui:bundle && pnpm test:coverage
           - runtime: node
             task: protocol
             command: pnpm protocol:check
           - runtime: bun
             task: test
             command: pnpm canvas:a2ui:bundle && bunx vitest run --config vitest.unit.config.ts
+            coverage_command: pnpm canvas:a2ui:bundle && bunx vitest run --config vitest.unit.config.ts --coverage
     steps:
       - name: Skip bun lane on push
         if: github.event_name == 'push' && matrix.runtime == 'bun'
@@ -222,7 +243,7 @@ jobs:
 
       - name: Run ${{ matrix.task }} (${{ matrix.runtime }})
         if: matrix.runtime != 'bun' || github.event_name != 'push'
-        run: ${{ matrix.command }}
+        run: ${{ matrix.coverage_command || matrix.command }}
 
       - name: Summarize slowest tests
         if: (github.event_name != 'push' || matrix.runtime != 'bun') && matrix.task == 'test' && matrix.runtime == 'node'
@@ -238,6 +259,16 @@ jobs:
           path: |
             ${{ env.OPENCLAW_VITEST_REPORT_DIR }}
             ${{ runner.temp }}/vitest-slowest.md
+
+      - name: Upload coverage to Codecov
+        if: (github.event_name != 'push' || matrix.runtime != 'bun') && matrix.task == 'test'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/lcov.info
+          flags: ${{ matrix.runtime }}-${{ runner.os }}
+          name: codecov-${{ matrix.runtime }}-${{ runner.os }}
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   # Types, lint, and format check.
   check:
@@ -325,6 +356,7 @@ jobs:
           - runtime: node
             task: test
             command: pnpm canvas:a2ui:bundle && pnpm test
+            coverage_command: pnpm canvas:a2ui:bundle && pnpm test:coverage
           - runtime: node
             task: protocol
             command: pnpm protocol:check
@@ -403,7 +435,7 @@ jobs:
         run: echo "OPENCLAW_VITEST_REPORT_DIR=$RUNNER_TEMP/vitest-reports" >> "$GITHUB_ENV"
 
       - name: Run ${{ matrix.task }} (${{ matrix.runtime }})
-        run: ${{ matrix.command }}
+        run: ${{ matrix.coverage_command || matrix.command }}
 
       - name: Summarize slowest tests
         if: matrix.task == 'test'
@@ -419,6 +451,16 @@ jobs:
           path: |
             ${{ env.OPENCLAW_VITEST_REPORT_DIR }}
             ${{ runner.temp }}/vitest-slowest.md
+
+      - name: Upload coverage to Codecov
+        if: matrix.task == 'test'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/lcov.info
+          flags: ${{ matrix.runtime }}-${{ runner.os }}
+          name: codecov-${{ matrix.runtime }}-${{ runner.os }}
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   # Consolidated macOS job: runs TS tests + Swift lint/build/test sequentially
   # on a single runner. GitHub limits macOS concurrent jobs to 5 per org;

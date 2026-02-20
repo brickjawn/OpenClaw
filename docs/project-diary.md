@@ -11,6 +11,37 @@ This diary tracks all changes to the OpenClaw project, maintained by the IT Proj
 
 ## Change Log
 
+### 2026-02-20 - CI: Dependency Review and Codecov
+
+**Timestamp**: 2026-02-20T18:00:00Z  
+**Specialist**: DevOps Engineer (with IT Project Manager)  
+**Type**: Infrastructure
+
+#### Change Description
+Implemented plan items in `.github/workflows/ci.yml`: (1) dependency-review job runs on PRs (after docs-scope, before heavy jobs), failing on moderate+ severity; (2) checks and checks-windows jobs generate coverage in CI via `coverage_command` and upload to Codecov.
+
+#### Impact Assessment
+- **System Stability**: Low risk (additive CI jobs, fail_ci_if_error: false for Codecov)
+- **Cost Impact**: None (Codecov free tier; dependency review uses GitHub built-in)
+- **Security Impact**: Positive (dependency review blocks vulnerable deps on PRs)
+- **Performance Impact**: Minor (dependency-review runs in parallel; coverage generation already in test run)
+
+#### Testing Performed
+- Verified workflow structure: dependency-review (needs docs-scope, PR-only), checks/checks-windows use matrix.coverage_command and Codecov upload step
+- workflow-sanity.yml runs actionlint on all workflows including ci.yml
+
+#### Rollback Procedure
+Remove dependency-review job; remove Codecov upload steps and use `matrix.command` instead of `matrix.coverage_command || matrix.command` in checks and checks-windows.
+
+#### Status
+Completed
+
+#### Notes
+- CODECOV_TOKEN optional for public repo; add secret for private or better reporting
+- Dependency Review requires GitHub Advanced Security for private repos (free for public)
+
+---
+
 ### 2026-02-20 - Pre-Push Security Audit
 
 **Timestamp**: 2026-02-20T12:00:00Z  
