@@ -842,6 +842,7 @@
                 "group": "Other install methods",
                 "pages": [
                   "install/docker",
+                  "install/docker-laptop-data",
                   "install/podman",
                   "install/nix",
                   "install/ansible",
