@@ -30,6 +30,10 @@ The wizard guides you step by step through setting up the gateway, workspace, ch
 Works with npm, pnpm, or bun.
 New install? Start here: [Getting started](https://docs.openclaw.ai/start/getting-started)
 
+### Custom flavor: Event promo and social marketing
+
+This fork includes a custom flavor for event promotion and social marketing (e.g., colon cancer awareness, community events). See [Agent Requirements](docs/agent-requirements.md) and [Event Promo Setup](docs/use-cases/event-promo-setup.md). The `event-promo-workspace/` directory contains custom skills and config examples.
+
 ## Sponsors
 
 | OpenAI                                                            | Blacksmith                                                                   |

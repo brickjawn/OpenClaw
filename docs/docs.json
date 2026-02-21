@@ -828,6 +828,13 @@
               {
                 "group": "Guides",
                 "pages": ["start/openclaw"]
+              },
+              {
+                "group": "Use Cases",
+                "pages": [
+                  "agent-requirements",
+                  "use-cases/event-promo-setup"
+                ]
               }
             ]
           },
