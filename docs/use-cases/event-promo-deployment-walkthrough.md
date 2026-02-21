@@ -137,6 +137,39 @@ This walkthrough implements the Project Review and Deployment plan, coordinating
 
 ---
 
+## Phase 3.5: Team sync (optional, ~5 min)
+
+<Info>
+**Skip this phase** if your team does not use shared OneDrive for event docs (flyers, survey data, meeting notes). If you do, this lets the agent index those files for morning digest and recap tasks.
+</Info>
+
+<Steps>
+  <Step title="Add memorySearch.extraPaths">
+    In `~/.openclaw/openclaw.json`, under `agents.defaults`, add or extend `memorySearch.extraPaths`:
+
+    ```json
+    "memorySearch": {
+      "extraPaths": ["~/.openclaw/team_sync"]
+    }
+    ```
+  </Step>
+
+  <Step title="Add sync cron job">
+    Run `scripts/sync_data.sh` before the morning digest so the agent sees fresh OneDrive content. Add a cron job (e.g. 8am):
+
+    ```bash
+    # Example: 8am, before 9am morning digest
+    0 8 * * * /path/to/OpenClaw/scripts/sync_data.sh
+    ```
+
+    Default: syncs `~/OneDrive/LouderThanCancer` → `~/.openclaw/team_sync`. Override with `TEAM_SYNC_SOURCE` and `TEAM_SYNC_DEST` if needed.
+  </Step>
+</Steps>
+
+See [Docker: laptop data layout](/install/docker-laptop-data) and [Event Promo Setup](/use-cases/event-promo-setup) for details.
+
+---
+
 ## Phase 4: Cron jobs (~10 min)
 
 <Info>
