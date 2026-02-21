@@ -141,23 +141,46 @@ In this model, **OneDrive is the primary knowledge base**. The rest of the team 
 
 1. **Choose the subset to sync**
    - Example: an “Events” folder with flyers, FAQs, sponsor decks, and timelines.
-2. **Sync it into `onedrive-sync/`**
-   - Use the official OneDrive sync client or a tool like `rclone` to keep a local mirror of that subset at:
-     - `~/Projects/openclaw/openclaw-data/onedrive-sync/`
+2. **Sync it into `onedrive-sync/`** (or `team_sync/`)
+
+   **Option A — OneDrive client or rclone**
+
+   Use the official OneDrive sync client or a tool like `rclone` to keep a local mirror of that subset at:
+   - `~/Projects/openclaw/openclaw-data/onedrive-sync/`
+
+   **Option B — rsync from OneDrive mount**
+
+   If OneDrive is already synced locally (e.g. `~/OneDrive/`), use `scripts/sync_data.sh` to rsync into a separate folder. rsync only transfers changed file parts, which is efficient for teams that frequently update event docs.
+
+   ```bash
+   # Default: ~/OneDrive/LouderThanCancer → ~/.openclaw/team_sync
+   ./scripts/sync_data.sh
+
+   # Custom paths
+   TEAM_SYNC_SOURCE=~/OneDrive/Events TEAM_SYNC_DEST=~/Projects/openclaw/openclaw-data/team_sync ./scripts/sync_data.sh
+   ```
+
+   Add a cron job to run before your morning agent task (e.g. `0 8 * * *`).
+
 3. **Tell OpenClaw to index it**
-   - In your config (`openclaw-data/openclaw.json`), add `onedrive-sync` as an **extra memory path**:
+   - In your config (`openclaw-data/openclaw.json`), add the sync folder as an **extra memory path**:
 
 ```json5
 {
   agents: {
     defaults: {
       memorySearch: {
-        extraPaths: ["~/Projects/openclaw/openclaw-data/onedrive-sync"]
+        extraPaths: [
+          "~/Projects/openclaw/openclaw-data/onedrive-sync",
+          "~/.openclaw/team_sync"
+        ]
       }
     }
   }
 }
 ```
+
+Use `onedrive-sync` if you use the OneDrive client or rclone directly; use `team_sync` if you use `scripts/sync_data.sh` to rsync from a OneDrive mount.
 
 Behavior:
 

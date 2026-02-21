@@ -26,3 +26,17 @@ This workspace is used by the custom OpenClaw flavor for event promotion and soc
 
 2. Add event docs and assets to `event-docs/` and `assets/`.
 3. Run `openclaw onboard` and configure WhatsApp + Web UI channels.
+
+## Team sync (OneDrive → agent knowledge base)
+
+When your team edits event docs in shared OneDrive (flyers, survey data, meeting notes), use `scripts/sync_data.sh` to rsync them into a local folder the agent can index:
+
+```bash
+# Default: ~/OneDrive/LouderThanCancer → ~/.openclaw/team_sync
+./scripts/sync_data.sh
+
+# Custom source/dest
+TEAM_SYNC_SOURCE=~/OneDrive/YourEvent TEAM_SYNC_DEST=~/.openclaw/team_sync ./scripts/sync_data.sh
+```
+
+Add `team_sync` to `memorySearch.extraPaths` in your config so OpenClaw indexes the synced Markdown. Run the script via cron before your morning digest (e.g. `0 8 * * *`). See [Docker: laptop data layout](/install/docker-laptop-data) for full setup.
