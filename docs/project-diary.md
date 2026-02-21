@@ -11,6 +11,38 @@ This diary tracks all changes to the OpenClaw project, maintained by the IT Proj
 
 ## Change Log
 
+### 2026-02-20 - Louder Than Cancer Flavor: Project Review and Deployment Walkthrough
+
+**Timestamp**: 2026-02-20T20:00:00Z  
+**Specialist**: DevOps Engineer (with IT Project Manager)  
+**Type**: Infrastructure
+
+#### Change Description
+Implemented Project Review and Deployment plan for Louder Than Cancer event promo flavor. Delivered: (1) full deployment walkthrough doc (`docs/use-cases/event-promo-deployment-walkthrough.md`) with 6-phase flow (install, onboard, flavor config, cron jobs, verification, backup); (2) backup script (`scripts/backup-openclaw.sh`) for config, cron, exec-approvals, and optional full state tarball; (3) pre-deployment checklists from Integration, Cybersecurity, and DevOps specialists.
+
+#### Impact Assessment
+- **System Stability**: Low risk (documentation and optional backup tooling)
+- **Cost Impact**: None
+- **Security Impact**: None (backup script reads existing config; no new secrets)
+- **Performance Impact**: None
+
+#### Testing Performed
+- Verified walkthrough doc structure and phase flow
+- Confirmed backup script paths match OpenClaw config layout (`~/.openclaw/openclaw.json`, `~/.openclaw/cron/jobs.json`, `~/.openclaw/exec-approvals.json`)
+
+#### Rollback Procedure
+Remove `scripts/backup-openclaw.sh`; revert docs and diary entry if needed.
+
+#### Status
+Completed
+
+#### Notes
+- Deployment target: local laptop, user-level background service (systemd/launchd)
+- Reference: [Event Promo Deployment Walkthrough](https://docs.openclaw.ai/use-cases/event-promo-deployment-walkthrough)
+- Backup procedure documented in Phase 6 of walkthrough
+
+---
+
 ### 2026-02-20 - CI: Dependency Review and Codecov
 
 **Timestamp**: 2026-02-20T18:00:00Z  
@@ -115,9 +147,9 @@ Completed
 
 ## Change Statistics
 
-- **Total Changes**: 2
-- **Changes This Week**: 2
-- **Changes This Month**: 2
+- **Total Changes**: 3
+- **Changes This Week**: 3
+- **Changes This Month**: 3
 - **Critical Issues**: 0
 - **Open Blockers**: 0
 

@@ -833,7 +833,8 @@
                 "group": "Use Cases",
                 "pages": [
                   "agent-requirements",
-                  "use-cases/event-promo-setup"
+                  "use-cases/event-promo-setup",
+                  "use-cases/event-promo-deployment-walkthrough"
                 ]
               }
             ]
