@@ -158,30 +158,30 @@ describe("buildWorkspaceSkillsPrompt", () => {
   });
   it("filters skills based on env/config gates", async () => {
     const workspaceDir = await createCaseDir("workspace");
-    const skillDir = path.join(workspaceDir, "skills", "nano-banana-pro");
+    const skillDir = path.join(workspaceDir, "skills", "requires-env-skill");
     await writeSkill({
       dir: skillDir,
-      name: "nano-banana-pro",
-      description: "Generates images",
+      name: "requires-env-skill",
+      description: "Skill that requires an env var",
       metadata:
         '{"openclaw":{"requires":{"env":["GEMINI_API_KEY"]},"primaryEnv":"GEMINI_API_KEY"}}',
-      body: "# Nano Banana\n",
+      body: "# Requires Env Skill\n",
     });
 
     withEnv({ GEMINI_API_KEY: undefined }, () => {
       const missingPrompt = buildPrompt(workspaceDir, {
         managedSkillsDir: path.join(workspaceDir, ".managed"),
-        config: { skills: { entries: { "nano-banana-pro": { apiKey: "" } } } },
+        config: { skills: { entries: { "requires-env-skill": { apiKey: "" } } } },
       });
-      expect(missingPrompt).not.toContain("nano-banana-pro");
+      expect(missingPrompt).not.toContain("requires-env-skill");
 
       const enabledPrompt = buildPrompt(workspaceDir, {
         managedSkillsDir: path.join(workspaceDir, ".managed"),
         config: {
-          skills: { entries: { "nano-banana-pro": { apiKey: "test-key" } } },
+          skills: { entries: { "requires-env-skill": { apiKey: "test-key" } } },
         },
       });
-      expect(enabledPrompt).toContain("nano-banana-pro");
+      expect(enabledPrompt).toContain("requires-env-skill");
     });
   });
   it("applies skill filters, including empty lists", async () => {

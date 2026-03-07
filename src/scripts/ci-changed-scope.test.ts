@@ -115,7 +115,7 @@ describe("detectChangedScope", () => {
   });
 
   it("runs Python skill tests when skills change", () => {
-    expect(detectChangedScope(["skills/openai-image-gen/scripts/test_gen.py"])).toEqual({
+    expect(detectChangedScope(["skills/weather/scripts/test_weather.py"])).toEqual({
       runNode: true,
       runMacos: false,
       runAndroid: false,
