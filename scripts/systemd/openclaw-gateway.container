@@ -1,0 +1,108 @@
+# Podman Quadlet unit — rootless systemd service for OpenClaw gateway.
+#
+# Canonical mount contract (single source of truth for writable paths):
+#
+#   READ-ONLY (config, immutable):
+#     /home/node/.openclaw-config          <- openclaw.json and friends
+#     /home/node/.openclaw-state/workspace/obsidian  <- obsidian memory (ro)
+#     root filesystem (ReadOnly=yes)
+#
+#   WRITABLE (scoped bind mounts):
+#     /home/node/.openclaw-state           <- sessions, state, queues
+#     /home/node/.openclaw                 <- runtime data (home-user)
+#     /home/node/.npm                      <- npm cache (home-user)
+#     /home/node/.cache                    <- misc cache (home-user)
+#     /root/.openclaw                      <- runtime data (root-mapped; rootless UID 0 = host 1000)
+#     /root/.npm                           <- npm cache (root-mapped)
+#     /root/.cache                         <- misc cache (root-mapped)
+#     /home/node/.openclaw-state/workspace/inbox  <- agent inbox (rw)
+#
+#   EPHEMERAL (tmpfs):
+#     /tmp                                 <- size-capped, transient
+#
+#   IPC:
+#     /tmp/openclaw-wol.sock               <- host user socket for Wake-on-LAN relay
+#
+# Any write outside of this list is a contract violation. Audit before landing mount changes.
+#
+# Deploy:
+#   cp scripts/systemd/openclaw-gateway.container ~/.config/containers/systemd/
+#   cp .env ~/.config/openclaw-gateway.env  (or symlink)
+#   chmod 600 ~/.config/openclaw-gateway.env
+#   systemctl --user daemon-reload
+#   systemctl --user start openclaw-gateway
+
+[Unit]
+Description=OpenClaw Gateway
+Wants=network-online.target
+After=network-online.target
+StartLimitBurst=3
+StartLimitIntervalSec=60
+
+[Container]
+Image=openclaw:local
+ContainerName=openclaw-gateway
+# Phase 2 network posture: bridge isolation, localhost-published port.
+Network=openclaw-net
+PublishPort=127.0.0.1:18789:18789
+Exec=node openclaw.mjs gateway --bind lan --allow-unconfigured
+DropCapability=ALL
+NoNewPrivileges=true
+# Note: UserNS=keep-id was previously used but triggered `storage-chown-by-maps`
+# over the whole image layer on every rebuild. On ZFS graphRoot that is ~hours of IO.
+# Running User=0 under rootless podman maps container UID 0 to host UID 1000 (the
+# invoking user), so bind-mount writes are still owned by croc and no chown is needed.
+# Defense-in-depth still: cap-drop=ALL, no-new-privileges, read-only root, minimal caps.
+User=0:0
+ReadOnly=yes
+Tmpfs=/tmp:size=256M,mode=1777
+
+Volume=/home/croc/Projects/OpenClaw/OpenClaw/openclaw-config:/home/node/.openclaw-config:ro,z
+Volume=/home/croc/openclaw-state:/home/node/.openclaw-state:z
+Volume=/home/croc/openclaw-state/home-node-openclaw:/home/node/.openclaw:z
+Volume=/home/croc/openclaw-state/home-node-npm:/home/node/.npm:z
+Volume=/home/croc/openclaw-state/home-node-cache:/home/node/.cache:z
+Volume=/home/croc/openclaw-state/root-openclaw:/root/.openclaw:z
+Volume=/home/croc/openclaw-state/root-npm:/root/.npm:z
+Volume=/home/croc/openclaw-state/root-cache:/root/.cache:z
+Volume=/run/user/1000/openclaw-wol.sock:/tmp/openclaw-wol.sock:z
+Volume=/home/croc/Documents/Obsidian/Master_Brain/01_Projects/OpenClaw_Gateway/state/memory:/home/node/.openclaw-state/workspace/obsidian:ro,z
+Volume=/home/croc/Documents/Obsidian/Master_Brain/99_System/_Agent_Inbox:/home/node/.openclaw-state/workspace/inbox:z
+
+EnvironmentFile=%h/.config/openclaw-gateway.env
+# Canonical source of truth for OLLAMA_BASE_URL / OLLAMA_EMBED_URL is the env file.
+# Do not re-add an Environment=OLLAMA_BASE_URL=... line here (caused config drift + wrong-port bugs).
+Environment=OLLAMA_API_KEY=local
+Environment=OPENCLAW_CONFIG_PATH=/home/node/.openclaw-config/openclaw.json
+Environment=OPENCLAW_STATE_DIR=/home/node/.openclaw-state
+Environment=NODE_OPTIONS=--max-old-space-size=3072
+
+# Container liveness probe: hits the gateway HTTP server's /healthz endpoint
+# (src/gateway/server-http.ts:181). Returns 200 if the gateway process is up
+# and serving HTTP. Channel/provider readiness is intentionally NOT checked
+# here -- that's a separate diagnostic surface available via
+# `openclaw health --json` from CLI or external monitoring. Conflating them
+# caused the container to flap unhealthy on transient external outages.
+#
+# curl --max-time 10 (inner) sits strictly inside HealthTimeout=15s (outer)
+# so curl reaches its own timeout and emits a diagnostic stderr line into
+# Health.Log.Output rather than getting killed silently by Podman.
+#
+# Note on Health.Log.Output: empirically, Podman only populates Output for
+# failure entries (ExitCode != 0). Success entries appear with empty Output
+# regardless of which fd the command writes to. That's fine here -- on
+# success there's nothing actionable; on failure curl's stderr carries the
+# diagnostic ("Failed to connect to 127.0.0.1 port 18789...").
+HealthCmd=curl -fsS --max-time 10 http://127.0.0.1:18789/healthz
+HealthInterval=30s
+HealthTimeout=15s
+HealthRetries=3
+HealthStartPeriod=45s
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+RestartSec=10
+
+[Install]
+WantedBy=default.target
